@@ -1,3 +1,12 @@
+# CLI / CI readiness
+This project is designed to be built and tested using the .NET CLI without any environment-specific setup beyond a .NET SDK.
+From the repository root the following commands are supported:
+* dotnet clean
+* dotnet build
+* dotnet test
+
+***
+# Task
 # Assecor Assessment Test (DE)
 
 ## Zielsetzung
