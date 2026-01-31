@@ -33,12 +33,10 @@ public class PersonsController : ControllerBase
 
         if (person is null)
         {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Person not found",
-                Detail = $"No person with id {id} exists."
-            });
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title:"Person not found",
+                detail: $"No person with id {id} exists.");
         }
         
         return Ok(person);
@@ -50,17 +48,7 @@ public class PersonsController : ControllerBase
     public async Task<IActionResult> GetByColor(string color, CancellationToken cancellationToken)
     {
         IReadOnlyList<Person> persons = await _personRepository.GetByColorAsync(color, cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(color))
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Missing color",
-                Detail = "Color must be provided."
-            });
-        }
-        
+      
         return Ok(persons);
     }
 }
