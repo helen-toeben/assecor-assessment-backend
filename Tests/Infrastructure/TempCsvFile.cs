@@ -9,7 +9,7 @@ internal class TempCsvFile :  IDisposable
     public TempCsvFile(params  string[] lines)
     {
         string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-        File.WriteAllLines(tempPath, lines/*todo: , Encoding.UTF8*/);
+        File.WriteAllLines(tempPath, lines);
         Path = tempPath;
     }
 
