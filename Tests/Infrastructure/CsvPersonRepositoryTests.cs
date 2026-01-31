@@ -49,8 +49,8 @@ public class CsvPersonRepositoryTests
         allEntries[1].Id.Should().Be(2);
         
         allEntries[0].Name.Should().Be("Hans");
-        allEntries[0].LastName.Should().Be("Müller");
-        allEntries[0].ZipCode.Should().Be("67742");
+        allEntries[0].Lastname.Should().Be("Müller");
+        allEntries[0].Zipcode.Should().Be("67742");
         allEntries[0].City.Should().Be("Lauterecken");
         allEntries[0].Color.Should().Be("blau");
     }
@@ -72,7 +72,7 @@ public class CsvPersonRepositoryTests
         
         //Assert
         allEntries.Count.Should().Be(2);
-        allEntries.Should().NotContain(person => person.LastName == "Bart" || person.LastName == "Meyer");
+        allEntries.Should().NotContain(person => person.Lastname == "Bart" || person.Lastname == "Meyer");
         allEntries[1].Id.Should().Be(3);
     }
     
@@ -91,7 +91,7 @@ public class CsvPersonRepositoryTests
         
         //Assert
         allEntries.Count.Should().Be(1);
-        allEntries.Should().NotContain(person => person.LastName == "Müller");
+        allEntries.Should().NotContain(person => person.Lastname == "Müller");
         allEntries[0].Id.Should().Be(2);
     }
     
@@ -125,8 +125,8 @@ public class CsvPersonRepositoryTests
         
         //Assert
         allEntries[0].Name.Should().Be("ÄndérŞ");
-        allEntries[0].LastName.Should().Be("Anderßon");
-        allEntries[0].ZipCode.Should().Be("321-32");
+        allEntries[0].Lastname.Should().Be("Anderßon");
+        allEntries[0].Zipcode.Should().Be("321-32");
         allEntries[0].City.Should().Be("Schweden - ☀");
         allEntries[0].Color.Should().Be("blau");
     }
@@ -145,7 +145,7 @@ public class CsvPersonRepositoryTests
         Person? person2 = await sut.GetByIdAsync(2);
         
         //Assert
-        person1?.LastName.Should().Be("Müller");
+        person1?.Lastname.Should().Be("Müller");
         person2.Should().BeNull();
     }
     

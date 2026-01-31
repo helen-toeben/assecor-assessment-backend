@@ -97,8 +97,8 @@ public class CsvPersonRepository :  IPersonRepository
         {
             Id = lineNumber,
             Name = name,
-            LastName = lastName,
-            ZipCode = zipCode,
+            Lastname = lastName,
+            Zipcode = zipCode,
             City = city,
             Color = MapColor(colorCode)
         };
