@@ -99,6 +99,17 @@ Given the limited scope of the challenge I chose to keep this functionality with
 Logging was intentionally not introduced at this stage to keep the implementation focussed on the core requirements.  
 In a production system structured logging should typically be added around data loading, parsing failures and unexpected runtime errors.
 
+# Future extension: second data source (e.g., EF Core / database)
+
+The WebApi depends only on the `IPersonRepository` contract in the Application layer.
+
+To add a second data source (e.g., SQL DB via EF Core) I would:
+* Implement `EfPersonRepository : IPersonRepository` using a `DbContext`.
+* Select the implementation via configuration/DI (e.g. `DataSource=Csv|Ef`) inside `AddInfrastructure(...)`.
+* Treat the CSV as seed/import data; after import, the DB becomes the source of truth.
+* Change the ID strategy: DB-generated IDs (identity/Guid) instead of “CSV line number”.
+* Keep existing `WebApplicationFactory` tests and swap the repository to EF (SQLite in-memory or EF InMemory) for deterministic runs.
+
 ***
 # Assecor Assessment Test (DE)
 
