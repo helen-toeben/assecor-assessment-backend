@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Tests.Infrastructure;
 
 internal class TempCsvFile :  IDisposable
