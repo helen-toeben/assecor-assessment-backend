@@ -1,6 +1,8 @@
+using Application.Contract;
 using Application.Models;
 using Application.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Contract;
 
 namespace WebApi.Controllers;
 
@@ -50,5 +52,36 @@ public class PersonsController : ControllerBase
         IReadOnlyList<Person> persons = await _personRepository.GetByColorAsync(color, cancellationToken);
       
         return Ok(persons);
+    }
+
+    [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreatePerson(CreatePersonRequest createPersonRequest, CancellationToken cancellationToken)
+    {
+        try
+        {
+            CreatePersonCommand command = new CreatePersonCommand(
+                createPersonRequest.Name, 
+                createPersonRequest.Lastname,
+                createPersonRequest.Zipcode, 
+                createPersonRequest.City, 
+                createPersonRequest.Color);
+            
+            Person created = await _personRepository.AddAsync(command, cancellationToken);
+            
+            return CreatedAtAction(
+                nameof(GetById), 
+                new { id = created.Id }, 
+                created);
+        }
+        catch (ArgumentException ex)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title:"Invalid person date",
+                detail: ex.Message);
+        }
     }
 }
