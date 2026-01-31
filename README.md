@@ -1,12 +1,82 @@
-# CLI / CI readiness
-This project is designed to be built and tested using the .NET CLI without any environment-specific setup beyond a .NET SDK.
-From the repository root the following commands are supported:
-* dotnet clean
-* dotnet build
-* dotnet test
+# Overview
+This project implements a RESTful Web API for managing person records.  
+Data is sourced from a CSV file and exposed as JSON.  
+  
+The application is structured using a layered architecture with clear separation between Web API, Application logic and Infrastructure.
+
+# Getting started
+This project is designed to be built and tested using the .NET CLI without any environment-specific setup beyond a .NET SDK.  
+From the repository root the following commands are supported:  
+  
+Building
+```
+dotnet build
+````
+Running the API
+```
+dotnet run --project WebAPi
+````
+Running tests
+```
+dotnet test
+````
+
+# API Endpoints
+All endpoints are returned as application/json.
+
+## Get all persons
+```
+GET /persons
+```
+## Get person by id
+```
+GET /persons/{id}
+```
+## Get persons by color
+```
+GET /persons/color/{color}
+```
+The input for color is case-insensitive and ignores leading or trailing whitespace to ensure predictable behaviour regardless of casing or minor input formatting differences.
+
+# Data handling assumptions
+* Incomplete or malformed entries are skipped during parsing.
+* Unknown color codes are handled gracefully and are mapped to ```"unbekannt"```
+
+# Architecture
+The solution follows a layered design:
+
+## WebApi
+* Controllers
+* Dependency injections configuration
+
+## Application
+* Domain Models
+* Repository contracts
+
+## Infrastructure
+* CSV-backed repository implementation
+
+# Testing strategy
+The project includes
+* Unit tests for CSV parsing behaviour. 
+* Integration tests using ```WebApplicationFactory``` to verify endpoints end-to-end
+Tests override configuration to ensure deterministic execution and avoid reliance on local files.
+
+# Design decisions and trade-offs
+* Tolerant parsing:  
+Malformed CSV rows are skipped to ensure functionality of the API even when confronted with messy data.
+* Load-once:  
+The CSV is parsed once and cached in memory for efficiency.
+* Repository abstraction:  
+Enables replacement of the data source without any changed on the Web API layer.
+* Avoiding unnecessary abstractions:  
+While implementing the CSV-backed repository I considered introducing dedicated classes for CSV parsing and color mapping.  
+Given the limited scope of the challenge I chose to keep this functionality within the repository to avoid premature abstraction. If the parsing logic would grow in complexity or be reused across multiple components, extracting dedicated services would be a natural next step.
+* Logging:  
+Logging was intentionally not introduced at this stage to keep the implementation focussed on the core requirements.  
+In a production system structured logging should typically be added around application startup, data loading, parsing failures and unexpected runtime errors.
 
 ***
-# Task
 # Assecor Assessment Test (DE)
 
 ## Zielsetzung
