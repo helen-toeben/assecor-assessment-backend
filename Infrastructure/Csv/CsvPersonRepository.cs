@@ -26,8 +26,8 @@ public class CsvPersonRepository :  IPersonRepository
     {
         _filePath =  ResolveFilePath(options.Value.FilePath);
         _persons = LoadPersons(_filePath);
+        EnsureNewLineAtEndOfFile(_filePath);
     }
-
     public Task<IReadOnlyList<Person>> GetAllAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<Person>>(_persons);
 
@@ -61,20 +61,6 @@ public class CsvPersonRepository :  IPersonRepository
         }
     }
 
-    private string MapColorCode(string color)
-    {
-        string colourCode = ColorMapping.FirstOrDefault
-                (keyValuePair => keyValuePair.Value.Equals(color, StringComparison.CurrentCultureIgnoreCase))
-            .Key;
-
-        if (string.IsNullOrWhiteSpace(colourCode))
-        {
-            throw new ArgumentException($"Unknown color '{color}'");
-        }
-
-        return colourCode;
-    }
-
     private static List<Person> LoadPersons(string filePath)
     {
         if (!File.Exists(filePath))
@@ -101,6 +87,39 @@ public class CsvPersonRepository :  IPersonRepository
         }
         
         return persons;
+    }
+
+    private void EnsureNewLineAtEndOfFile(string filePath)
+    {
+        using FileStream stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.ReadWrite,
+            FileShare.None);
+
+        stream.Seek(-1, SeekOrigin.End);
+        int lastByte = stream.ReadByte();
+
+        if (lastByte == '\n')
+            return;
+
+        stream.Seek(0, SeekOrigin.End);
+        using StreamWriter writer = new StreamWriter(stream);
+        writer.WriteLine();
+    }
+
+    private string MapColorCode(string color)
+    {
+        string colourCode = ColorMapping.FirstOrDefault
+                (keyValuePair => keyValuePair.Value.Equals(color, StringComparison.CurrentCultureIgnoreCase))
+            .Key;
+
+        if (string.IsNullOrWhiteSpace(colourCode))
+        {
+            throw new ArgumentException($"Unknown color '{color}'");
+        }
+
+        return colourCode;
     }
 
     private Person MapToNewPerson(CreatePersonCommand command, int nextId)
