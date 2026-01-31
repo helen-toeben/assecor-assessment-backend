@@ -60,6 +60,8 @@ Request body:
 
 
 # Data handling assumptions
+* The sample CSV is copied to the build output directory at startup.  
+All write operations modify this runtime copy to keep the repository source file unchanged.
 * Incomplete or malformed entries are skipped during parsing.
 * Unknown color codes are handled gracefully and are mapped to ```"unbekannt"```
 
