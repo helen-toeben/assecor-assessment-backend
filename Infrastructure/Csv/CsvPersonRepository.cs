@@ -1,3 +1,4 @@
+using Application.Contract;
 using Application.Models;
 using Application.Repositories;
 using Microsoft.Extensions.Options;
@@ -7,11 +8,24 @@ namespace Infrastructure.Csv;
 public class CsvPersonRepository :  IPersonRepository
 {
     private readonly List<Person> _persons;
+    private readonly string _filePath;
+    private readonly SemaphoreSlim _fileLock = new (1, 1);
+
+    private static readonly Dictionary<string, string> ColorMapping = new()
+    {
+        { "1", "blau" },
+        { "2", "grün" },
+        { "3", "violett" },
+        { "4", "rot" },
+        { "5", "gelb" },
+        { "6", "türkis" },
+        { "7", "weiß" }
+    };
 
     public CsvPersonRepository(IOptions<CsvPersonRepositoryOptions> options)
     {
-        string filePath = options.Value.FilePath;
-        _persons = LoadPersons(filePath);
+        _filePath =  ResolveFilePath(options.Value.FilePath);
+        _persons = LoadPersons(_filePath);
     }
 
     public Task<IReadOnlyList<Person>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -24,18 +38,48 @@ public class CsvPersonRepository :  IPersonRepository
         => Task.FromResult<IReadOnlyList<Person>>(_persons
             .Where(person => person.Color.Equals(color.Trim(), StringComparison.CurrentCultureIgnoreCase)).ToList());
 
-    public Task AddAsync(Person person, CancellationToken cancellationToken = default)
+    public async Task<Person> AddAsync(CreatePersonCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await _fileLock.WaitAsync(cancellationToken);
+        try
+        {
+            string colourCode = MapColorCode(command.Color);
+            
+            int nextId = File.ReadLines(_filePath).Count() + 1;
+            
+            Person newPerson = MapToNewPerson(command, nextId);
+            
+            await WriteToFile(cancellationToken, newPerson, colourCode);
+
+            _persons.Add(newPerson);
+
+            return newPerson;
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
+    }
+
+    private string MapColorCode(string color)
+    {
+        string colourCode = ColorMapping.FirstOrDefault
+                (keyValuePair => keyValuePair.Value.Equals(color, StringComparison.CurrentCultureIgnoreCase))
+            .Key;
+
+        if (string.IsNullOrWhiteSpace(colourCode))
+        {
+            throw new ArgumentException($"Unknown color '{color}'");
+        }
+
+        return colourCode;
     }
 
     private static List<Person> LoadPersons(string filePath)
     {
-        filePath = ResolveFilePath(filePath);
-        
         if (!File.Exists(filePath))
         {
-            throw new FileNotFoundException($"File not found at {filePath}.", filePath);
+            throw new FileNotFoundException($"File not found at {filePath}.");
         }
         
         List<Person> persons = [];
@@ -57,6 +101,35 @@ public class CsvPersonRepository :  IPersonRepository
         }
         
         return persons;
+    }
+
+    private Person MapToNewPerson(CreatePersonCommand command, int nextId)
+    {
+        string name = command.Name.Trim();
+        string lastname = command.Lastname.Trim();
+        string zipcode = command.Zipcode.Trim();
+        string city = command.City.Trim();
+        string color = command.Color.Trim();
+        
+        Person newPerson = new Person
+        {
+            Id = nextId,
+            Name = name,
+            Lastname = lastname,
+            Zipcode = zipcode,
+            City = city,
+            Color = color
+        };
+        return newPerson;
+    }
+
+    //caller must hold fileLock
+    private async Task WriteToFile(CancellationToken cancellationToken, Person newPerson, string colourCode)
+    {
+        string csvLine =
+            $"{newPerson.Lastname}, {newPerson.Name}, {newPerson.Zipcode} {newPerson.City}, {colourCode}";
+
+        await File.AppendAllTextAsync(_filePath, csvLine + Environment.NewLine, cancellationToken);
     }
 
     private static string ResolveFilePath(string filePath)
@@ -100,25 +173,10 @@ public class CsvPersonRepository :  IPersonRepository
             Lastname = lastName,
             Zipcode = zipCode,
             City = city,
-            Color = MapColor(colorCode)
+            Color = ColorMapping.SingleOrDefault(keyValuePair => keyValuePair.Key == colorCode).Value ?? "unbekannt"
         };
 
         return true;
-    }
-
-    private static string MapColor(string colorCode)
-    {
-        return colorCode switch
-        {
-            "1" => "blau",
-            "2" => "grün",
-            "3" => "violett",
-            "4" => "rot",
-            "5" => "gelb",
-            "6" => "türkis",
-            "7" => "weiß",
-            _ => "unbekannt"
-        };
     }
 
     private static bool TrySplitAddress(string address, out string zipCode, out string city)

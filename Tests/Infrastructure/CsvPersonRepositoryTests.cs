@@ -1,3 +1,4 @@
+using Application.Contract;
 using Application.Models;
 using Infrastructure.Csv;
 using Microsoft.Extensions.Options;
@@ -187,5 +188,106 @@ public class CsvPersonRepositoryTests
         
         //Assert
         personsWithInvalidColor.Count.Should().Be(0);
+    }
+    
+    [Fact]
+    public async Task AddAsync_AppendsNewPersonAndReturnsPersonWithNextId()
+    {
+        //Arrange
+        using TempCsvFile file = new TempCsvFile(
+            "Müller, Hans, 67742 Lauterecken, 1",
+            "Petersen, Peter, 18439",
+            "Mustermann, Max, 12345 Hamburg, 2");
+
+        CreatePersonCommand command = new CreatePersonCommand(
+            "John",
+            "Doe",
+            "12345",
+            "Berlin",
+            "rot");
+
+        CsvPersonRepository sut = CreateCsvPersonRepository(file.Path);
+        
+        //Act
+        Person newPerson = await sut.AddAsync(command);
+        IReadOnlyList<Person> persons = await sut.GetAllAsync();
+        string[] csvLines = (await File.ReadAllLinesAsync(file.Path)).ToArray();
+        
+        //Assert
+        newPerson.Id.Should().Be(4);
+        
+        persons.Count.Should().Be(3);
+        persons.Last().Name.Should().Be("John");
+        persons.Last().Color.Should().Be("rot");
+        
+        csvLines.Length.Should().Be(4);
+        csvLines[^1].Should().Be("Doe, John, 12345 Berlin, 4");
+    }
+    
+    [Fact]
+    public async Task AddAsync_UnknownColor_ThrowsArgumentExceptionAndDoesNotWrite()
+    {
+        //Arrange
+        using TempCsvFile file = new TempCsvFile(
+            "Müller, Hans, 67742 Lauterecken, 1",
+            "Mustermann, Max, 12345 Hamburg, 2");
+
+        CreatePersonCommand command = new CreatePersonCommand(
+            "John",
+            "Doe",
+            "12345",
+            "Berlin",
+            "zinober");
+
+        CsvPersonRepository sut = CreateCsvPersonRepository(file.Path);
+        
+        //Act
+        Func<Task> action = () => _ = sut.AddAsync(command);
+        
+        //Assert
+        await action.Should().ThrowAsync<ArgumentException>();
+        
+        //Act 2: need to execute action first
+        IReadOnlyList<Person> persons = await sut.GetAllAsync();
+        string[] csvLines = (await File.ReadAllLinesAsync(file.Path)).ToArray();
+        
+        //Assert 2
+        persons.Count.Should().Be(2);
+        persons.Should().NotContain(person => person.Lastname == "Doe");
+        
+        csvLines.Length.Should().Be(2);
+        csvLines.Should().NotContain(line => line == "Doe, John, 12345 Berlin, 4");
+    }
+    
+    [Fact]
+    public async Task AddAsync_ConcurrentCallsDoNotCauseDuplicateIds()
+    {
+        //Arrange
+        using TempCsvFile file = new TempCsvFile(
+            "Müller, Hans, 67742 Lauterecken, 1",
+            "Mustermann, Max, 12345 Hamburg, 2");
+
+        CreatePersonCommand command = new CreatePersonCommand(
+            "John",
+            "Doe",
+            "12345",
+            "Berlin",
+            "rot");
+
+        CsvPersonRepository sut = CreateCsvPersonRepository(file.Path);
+        
+        //Act
+        Person newPerson1 = await sut.AddAsync(command);
+        Person newPerson2 = await sut.AddAsync(command);
+        IReadOnlyList<Person> persons = await sut.GetAllAsync();
+        string[] csvLines = (await File.ReadAllLinesAsync(file.Path)).ToArray();
+        
+        //Assert
+        newPerson1.Id.Should().Be(3);
+        newPerson2.Id.Should().Be(4);
+        
+        persons.Count.Should().Be(4);
+        
+        csvLines.Length.Should().Be(4);
     }
 }
