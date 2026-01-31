@@ -31,6 +31,8 @@ public class CsvPersonRepository :  IPersonRepository
 
     private static List<Person> LoadPersons(string filePath)
     {
+        filePath = ResolveFilePath(filePath);
+        
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"File not found at {filePath}.", filePath);
@@ -55,6 +57,11 @@ public class CsvPersonRepository :  IPersonRepository
         }
         
         return persons;
+    }
+
+    private static string ResolveFilePath(string filePath)
+    {
+        return Path.IsPathRooted(filePath) ? filePath : Path.Combine(AppContext.BaseDirectory, filePath);
     }
 
     private static bool TryParseLine(int lineNumber, string line, out Person person)
